@@ -1,82 +1,64 @@
-import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+import os
+from flask import Flask
+import threading
 
-# --- আপনার দেওয়া তথ্য এখানে যোগ করা হয়েছে ---
+# =========================
+# Bot Configuration
+# =========================
+YOUTUBE_CHANNEL = "https://www.youtube.com/@Deshiviralvideo30"
+BOT_TOKEN = "8243537528:AAGnVUHi8u1XB11RY9F107ssCAFIpV9FU4I"
 
-# ১. আপনার বোট টোকেন
-YOUR_BOT_TOKEN = "8243537528:AAGnVUHi8u1XB11RY9F107ssCAFIpV9FU4I"  
-
-# ২. আপনার ইউটিউব চ্যানেলের লিঙ্ক
-YOUR_YOUTUBE_CHANNEL_LINK = "https://www.youtube.com/@Deshiviralvideo30" 
-
-# ৩. আপনার পাবলিক গ্রুপের লিঙ্ক
-YOUR_GROUP_LINK = "https://t.me/bangladeshideshivideo"
-
-# --------------------------------------------------
-# (নিচের কোডে আর কিছু পরিবর্তন করতে হবে না)
-# --------------------------------------------------
-
-# লগিং চালু করা
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
-logger = logging.getLogger(__name__)
-
-# /start কমান্ড দিলে এই ফাংশনটি কাজ করবে
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user = update.effective_user
-    
+# =========================
+# Telegram Bot Handlers
+# =========================
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [
-            InlineKeyboardButton("🔔 Subscribe Now", url=YOUR_YOUTUBE_CHANNEL_LINK),
-        ],
-        [
-            InlineKeyboardButton("✅ Done", callback_data="user_clicked_done"),
-        ]
+        [InlineKeyboardButton("📺 Subscribe on YouTube", url=YOUTUBE_CHANNEL)],
+        [InlineKeyboardButton("✅ I Subscribed", callback_data="done")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await update.message.reply_html(
-        rf"👋 হাই {user.mention_html()}! অনুগ্রহ করে আমাদের ইউটিউব চ্যানেলে সাবস্ক্রাইব করুন এবং 'Done' বাটনে ক্লিক করুন।",
-        reply_markup=reply_markup,
+    await update.message.reply_text(
+        "👋 Welcome to Deshi Viral Bot!\n\n"
+        "Before using the bot, please subscribe to our YouTube channel 👇",
+        reply_markup=reply_markup
     )
 
-# যখন কোনো বাটনে ক্লিক করা হবে, এই ফাংশনটি কাজ করবে
-async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    if query.data == "user_clicked_done":
-        # ইউজার 'Done' ক্লিক করলেই লিঙ্কটি পেয়ে যাবে
+    if query.data == "done":
         await query.edit_message_text(
-            text=f"ধন্যবাদ! ✅\n\nএই নিন আপনার গ্রুপের লিঙ্ক:\n{YOUR_GROUP_LINK}"
+            text="✅ Thanks for subscribing!\nYou now have full access to the bot 🎉"
         )
 
-def main() -> None:
-    """বোটটি চালু করুন।"""
-    application = Application.builder().token(YOUR_BOT_TOKEN).build()
+# =========================
+# Start Telegram Bot
+# =========================
+app_bot = ApplicationBuilder().token(BOT_TOKEN).build()
+app_bot.add_handler(CommandHandler("start", start))
+app_bot.add_handler(CallbackQueryHandler(button))
 
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(button_click))
+# Run bot in a separate thread so Flask can also run
+def run_bot():
+    print("🤖 Bot is running...")
+    app_bot.run_polling()
 
-    print("বোট চালু হচ্ছে...")
-    application.run_polling()
+threading.Thread(target=run_bot).start()
 
-if __name__ == "__main__":
+# =========================
+# Dummy Flask Webserver for Render Port Binding
+# =========================
+flask_app = Flask(__name__)
+PORT = int(os.environ.get("PORT", 10000))  # Render automatically assigns this
 
-    main()
-    from flask import Flask
-import threading
-
-app = Flask(__name__)
-
-@app.route('/')
+@flask_app.route("/")
 def home():
     return "Bot is alive!"
 
-def run():
-    # Render expects your app to bind to port 8080
-    app.run(host='0.0.0.0', port=8080)
+if __name__ == "__main__":
+    # Bind to all interfaces
+    flask_app.run(host="0.0.0.0", port=PORT)
 
-threading.Thread(target=run).start()
