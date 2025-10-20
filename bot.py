@@ -41,24 +41,27 @@ app_bot = ApplicationBuilder().token(BOT_TOKEN).build()
 app_bot.add_handler(CommandHandler("start", start))
 app_bot.add_handler(CallbackQueryHandler(button))
 
-# Run bot in a separate thread so Flask can also run
 def run_bot():
     print("🤖 Bot is running...")
     app_bot.run_polling()
 
-threading.Thread(target=run_bot).start()
+# Run bot in a separate thread
+threading.Thread(target=run_bot, daemon=False).start()
 
 # =========================
-# Dummy Flask Webserver for Render Port Binding
+# Flask app for Render
 # =========================
 flask_app = Flask(__name__)
-PORT = int(os.environ.get("PORT", 10000))  # Render automatically assigns this
+PORT = int(os.environ.get("PORT", 10000))
 
 @flask_app.route("/")
 def home():
     return "Bot is alive!"
 
-if __name__ == "__main__":
-    # Bind to all interfaces
-    flask_app.run(host="0.0.0.0", port=PORT)
+# =========================
+# Remove development server warning by not using flask_app.run()
+# =========================
+# Flask will be served via Gunicorn in Render
+# Start command in Render: gunicorn bot:flask_app --bind 0.0.0.0:$PORT
+
 
