@@ -1,14 +1,14 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
-import os
 from flask import Flask
+import os
 import threading
 
 # =========================
 # Bot Configuration
 # =========================
 YOUTUBE_CHANNEL = "https://www.youtube.com/@Deshiviralvideo30"
-BOT_TOKEN = "8243537528:AAGnVUHi8u1XB11RY9F107ssCAFIpV9FU4I"
+BOT_TOKEN = os.getenv("BOT_TOKEN")  # Secure token from Render Environment Variable
 
 # =========================
 # Telegram Bot Handlers
@@ -37,31 +37,31 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =========================
 # Start Telegram Bot
 # =========================
-app_bot = ApplicationBuilder().token(BOT_TOKEN).build()
-app_bot.add_handler(CommandHandler("start", start))
-app_bot.add_handler(CallbackQueryHandler(button))
-
 def run_bot():
+    from telegram.ext import ApplicationBuilder
+    app_bot = ApplicationBuilder().token(BOT_TOKEN).build()
+    app_bot.add_handler(CommandHandler("start", start))
+    app_bot.add_handler(CallbackQueryHandler(button))
+
     print("🤖 Bot is running...")
     app_bot.run_polling()
 
-# Run bot in a separate thread
-threading.Thread(target=run_bot, daemon=False).start()
-
 # =========================
-# Flask app for Render
+# Flask Web Server (for Render)
 # =========================
 flask_app = Flask(__name__)
-PORT = int(os.environ.get("PORT", 10000))
 
 @flask_app.route("/")
 def home():
-    return "Bot is alive!"
+    return "✅ Deshi Viral Bot is alive and running on Render!"
 
 # =========================
-# Remove development server warning by not using flask_app.run()
+# Entry Point
 # =========================
-# Flask will be served via Gunicorn in Render
-# Start command in Render: gunicorn bot:flask_app --bind 0.0.0.0:$PORT
+if __name__ == "__main__":
+    # Run Telegram Bot in background
+    threading.Thread(target=run_bot, daemon=True).start()
 
-
+    # Start Flask webserver for Render port binding
+    PORT = int(os.environ.get("PORT", 10000))
+    flask_app.run(host="0.0.0.0", port=PORT)
