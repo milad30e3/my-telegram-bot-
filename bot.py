@@ -1,12 +1,18 @@
+import asyncio
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 from flask import Flask
 import os
-import threading
 
+# =========================
+# Bot Configuration
+# =========================
 YOUTUBE_CHANNEL = "https://www.youtube.com/@Deshiviralvideo30"
-BOT_TOKEN = os.getenv("BOT_TOKEN")  # Render environment থেকে টোকেন নিবে
+BOT_TOKEN = os.getenv("BOT_TOKEN")  # Secure token from Render Environment Variable
 
+# =========================
+# Telegram Bot Handlers
+# =========================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📺 Subscribe on YouTube", url=YOUTUBE_CHANNEL)],
@@ -14,7 +20,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        "👋 Welcome to Deshi Viral Bot!\n\nPlease subscribe to our YouTube channel 👇",
+        "👋 Welcome to Deshi Viral Bot!\n\n"
+        "Before using the bot, please subscribe to our YouTube channel 👇",
         reply_markup=reply_markup
     )
 
@@ -23,23 +30,37 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     if query.data == "done":
         await query.edit_message_text(
-            text="✅ Thanks for subscribing! You now have full access 🎉"
+            text="✅ Thanks for subscribing!\nYou now have full access to the bot 🎉"
         )
 
-def run_bot():
+# =========================
+# Start Telegram Bot
+# =========================
+async def run_bot():
     app_bot = ApplicationBuilder().token(BOT_TOKEN).build()
     app_bot.add_handler(CommandHandler("start", start))
     app_bot.add_handler(CallbackQueryHandler(button))
-    print("🤖 Bot is running...")
-    app_bot.run_polling()
 
+    print("🤖 Bot is running...")
+    await app_bot.run_polling()
+
+# =========================
+# Flask Web Server (for Render)
+# =========================
 flask_app = Flask(__name__)
 
 @flask_app.route("/")
 def home():
-    return "✅ Deshi Viral Bot is alive and running!"
+    return "✅ Deshi Viral Bot is alive and running on Render!"
 
+# =========================
+# Entry Point
+# =========================
 if __name__ == "__main__":
-    threading.Thread(target=run_bot, daemon=True).start()
+    # Run bot asynchronously with Flask
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.create_task(run_bot())
+
     PORT = int(os.environ.get("PORT", 10000))
     flask_app.run(host="0.0.0.0", port=PORT)
