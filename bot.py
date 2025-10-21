@@ -1,10 +1,11 @@
-# import os
+import os
+import threading
 from flask import Flask
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
-import threading
 
-BOT_TOKEN = os.environ["BOT_TOKEN"]  # Render এ Environment Variable এ সেট করবে
+# Token from Render Environment Variable
+BOT_TOKEN = os.environ["BOT_TOKEN"]
 YOUTUBE_CHANNEL = "https://www.youtube.com/@Deshiviralvideo30"
 
 # Telegram handlers
@@ -32,9 +33,10 @@ def run_bot():
     print("🤖 Bot is running...")
     app.run_polling(stop_signals=None)
 
+# Run bot in background thread
 threading.Thread(target=run_bot, daemon=True).start()
 
-# Flask server (to keep Render alive)
+# Flask web app (to keep alive on Render)
 flask_app = Flask(__name__)
 
 @flask_app.route("/")
